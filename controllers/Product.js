@@ -1,5 +1,4 @@
 const { Product } = require("../models/Product");
-const mongoose = require("mongoose");
 
 exports.createProduct = async (req, res) => {
   // this product we have to get from  API body
@@ -7,21 +6,12 @@ exports.createProduct = async (req, res) => {
 
   try {
     const doc = await product.save();
-    res.status(201).json({
-      success: true,
-      data: doc,
-      message: "Entry Created Successfully",
-    });
+    res.status(201).json(doc);
   } catch (err) {
-    console.error(err);
-    console.log(err);
-    res.status(500).json({
-      success: false,
-      data: "Internal server error while creating product",
-      message: err.message,
-    });
+    res.status(400).json(err);
   }
 };
+
 exports.fetchAllProducts = async (req, res) => {
   // filter = {"category":["smartphone","laptops"]}
   // sort = {_sort:"price",_order="desc"}
@@ -46,7 +36,6 @@ exports.fetchAllProducts = async (req, res) => {
 
   //   here in backend we dont have 'X-Total-Count' in Header, on frontend we need this so writing this...
   const totalDocs = await totalProductsQuery.count().exec();
-  console.log({ totalDocs });
 
   if (req.query._page && req.query._limit) {
     const pageSize = req.query._limit;
@@ -56,19 +45,33 @@ exports.fetchAllProducts = async (req, res) => {
 
   try {
     const docs = await query.exec();
-    res.set('X-Total-Count', totalDocs)
-    res.status(200).json({
-      success: true,
-      data: docs,
-      message: "Product Fetched Successfully",
-    });
+    res.set('X-Total-Count', totalDocs);
+    res.status(200).json(docs);
   } catch (err) {
-    console.error(err);
-    console.log(err);
-    res.status(500).json({
-      success: false,
-      data: "server error while fetching products",
-      message: err.message,
-    });
+    res.status(400).json(err);
   }
 };
+
+exports.fetchProductById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findById(id);
+    res.status(200).json(product);
+  } catch (err) {
+    res.status(400).json(err);
+  }
+};
+
+exports.updateProduct = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const product = await Product.findByIdAndUpdate(id, req.body, {new: true});
+
+    res.status(200).json({product});
+  } catch (err) {
+    res.status(400).json(err);
+  }
+};
+

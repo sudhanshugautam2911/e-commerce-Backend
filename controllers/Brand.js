@@ -9,6 +9,7 @@ exports.fetchBrands = async (req, res) => {
   }
 };
 
+
 // Create New Brand
 exports.createBrand = async (req, res) => {
   // this product we have to get from  API body

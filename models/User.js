@@ -29,10 +29,9 @@ const userSchema = new Schema({
 
 
 const virtual = userSchema.virtual('id');
-
-userSchema.get(function() {
+virtual.get(function () {
   return this._id;
-})
+});
 
 userSchema.set('toJSON', {
   virtuals: true,

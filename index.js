@@ -7,8 +7,8 @@ const session = require("express-session");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const JwtStrategy = require("passport-jwt").Strategy;
-const ExtractJwt = require("passport-jwt").ExtractJwt;
 var jwt = require("jsonwebtoken");
+const cookieParser = require('cookie-parser');
 
 const productRouters = require("./routes/Product");
 const brandRouters = require("./routes/Brand");
@@ -19,15 +19,20 @@ const cartRouters = require("./routes/Cart");
 const ordersRouters = require("./routes/Order");
 const { User } = require("./models/User");
 const crypto = require("crypto");
-const { isAuth, sanitizeUser } = require("./services/common");
+const { isAuth, sanitizeUser, cookieExtractor } = require("./services/common");
 
-const SECRET_KEY = "SECRET_KEY";
+const SECRET_KEY = "SECRET_KEY";  
 // JWT options
-var opts = {};
-opts.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
+const opts = {};
+opts.jwtFromRequest = cookieExtractor;
 opts.secretOrKey = SECRET_KEY; // TODO: it should not be in code
 
 // middlewares
+
+// step during build and deploy
+server.use(express.static('build'))
+
+server.use(cookieParser());
 
 // passport
 server.use(
@@ -37,7 +42,7 @@ server.use(
     saveUninitialized: false, // don't create session until something stored
   })
 );
-server.use(passport.authenticate("session"));
+server.use(passport.authenticate('session'));
 server.use(
   cors({
     exposedHeaders: ["X-Total-Count"],
@@ -56,9 +61,11 @@ server.use("/orders", ordersRouters.router);
 // passport strategies
 passport.use(
   "local",
-  new LocalStrategy(async function (username, password, done) {
+  new LocalStrategy(
+    {usernameField: 'email'},
+    async function (email, password, done) {
     try {
-      const user = await User.findOne({ email: username }).exec();
+      const user = await User.findOne({ email: email }) ;
       if (!user) {
         return done(null, false, { message: "No User with this email found" });
       }
@@ -69,18 +76,12 @@ passport.use(
         32,
         "sha256",
         async function (err, hashedPassword) {
-          console.log("user pass is ", user.password);
-          console.log("hashed  pass is ", hashedPassword);
-
-          if (err) {
-            return cb(err);
-          }
           if (!crypto.timingSafeEqual(user.password, hashedPassword)) {
             return done(null, false, { message: "Invalid Credentials !" });
           }
           const token = jwt.sign(sanitizeUser(user), SECRET_KEY);
 
-          done(null, token); // this line sends to serializer
+          done(null, { id: user.id, role: user.role, token }); // this line sends to serializer
         }
       );
     } catch (err) {
@@ -91,20 +92,17 @@ passport.use(
 
 // JWT strategies
 passport.use(
-  "jwt",
+  'jwt',
   new JwtStrategy(opts, async function (jwt_payload, done) {
     try {
-      const user = await User.findOne({ id: jwt_payload.sub });
+      const user = await User.findById(jwt_payload.id);
       if (user) {
-        return done(null, sanitizeUser(user));
+        return done(null, sanitizeUser(user)); // this calls serializer
       } else {
         return done(null, false);
-        // or you could create a new account
       }
     } catch (err) {
-      if (err) {
-        return done(err, false);
-      }
+      return done(err, false);
     }
   })
 );

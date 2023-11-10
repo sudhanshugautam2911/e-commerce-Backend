@@ -21,7 +21,7 @@ const ordersRouters = require("./routes/Order");
 const { User } = require("./models/User");
 const crypto = require("crypto");
 const { isAuth, sanitizeUser, cookieExtractor } = require("./services/common");
-
+const path = require('path');
 
 // JWT options
 const opts = {};
@@ -65,7 +65,7 @@ server.post('/webhook', express.raw({type: 'application/json'}), (request, respo
 // middlewares
 
 // step during build and deploy
-server.use(express.static('build'))
+server.use(express.static(path.resolve(__dirname, 'build')))  
 
 server.use(cookieParser());
 
@@ -172,7 +172,7 @@ const stripe = require("stripe")('sk_test_51OAofGSHlXMzqEut0drvMDGIrdyBcnziIUn0i
 
 server.post("/create-payment-intent", async (req, res) => {
   const { totalAmount } = req.body;
-  
+
   // Create a PaymentIntent with the order amount and currency
   const paymentIntent = await stripe.paymentIntents.create({
     amount: totalAmount*100,

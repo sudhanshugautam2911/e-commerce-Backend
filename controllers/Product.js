@@ -20,10 +20,10 @@ exports.fetchAllProducts = async (req, res) => {
 
   // if deleted is true for a product then do not include that product, deleted:{$ne:true}
 
-  let condition = {}
-  
+  let condition = {};
+
   if (!req.query.admin) {
-    condition.deleted = { $ne: true }
+    condition.deleted = { $ne: true };
   }
   let query = Product.find(condition);
   let totalProductsQuery = Product.find(condition);
@@ -52,6 +52,7 @@ exports.fetchAllProducts = async (req, res) => {
   }
 
   try {
+
     const docs = await query.exec();
     res.set("X-Total-Count", totalDocs);
     res.status(200).json(docs);
